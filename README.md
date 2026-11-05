@@ -33,8 +33,8 @@ sequenceDiagram
 
     Note over User,Disk: 1. Cookie Lifecycle (setcookie)
     PHP->>Network: setcookie('theme', 'dark', time() + 60)
-    Network->>User: HTTP/1.1 200 OK<br/>Set-Cookie: theme=dark; Max-Age=60; HttpOnly
-    Note over User: Browser saves 'theme' in Cookie Jar.<br/>(Note: $_COOKIE is NOT updated yet!)
+    Network->>User: HTTP/1.1 200 OK<br/>Set-Cookie: theme=dark, Max-Age=60, HttpOnly
+    Note over User: Browser saves theme in Cookie Jar<br/>(Notice: $_COOKIE is NOT updated yet)
     User->>Network: HTTP GET /dashboard.php<br/>Cookie: theme=dark
     Network->>PHP: Populates $_COOKIE['theme'] = 'dark'
 
@@ -42,11 +42,11 @@ sequenceDiagram
     User->>Network: HTTP GET /login.php (No PHPSESSID)
     Network->>PHP: session_start()
     PHP->>Disk: Create /tmp/sess_a1b2c3d4...
-    PHP->>Network: HTTP/1.1 200 OK<br/>Set-Cookie: PHPSESSID=a1b2c3d4...; HttpOnly
+    PHP->>Network: HTTP/1.1 200 OK<br/>Set-Cookie: PHPSESSID=a1b2c3d4..., HttpOnly
     Network->>User: Stores PHPSESSID token
     User->>Network: Subsequent GET with Cookie: PHPSESSID=a1b2c3d4...
     Network->>PHP: session_start() detects PHPSESSID
-    PHP->>Disk: Unlocks & deserializes /tmp/sess_a1b2c3d4... into $_SESSION
+    PHP->>Disk: Unlocks and deserializes /tmp/sess_a1b2c3d4... into $_SESSION
 ```
 
 ---
