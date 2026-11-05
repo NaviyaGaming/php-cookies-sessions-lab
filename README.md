@@ -3,8 +3,8 @@
 [![PHP 8.x Ready](https://img.shields.io/badge/PHP-8.0%2B-777BB4?style=for-the-badge&logo=php&logoColor=white)](https://www.php.net/)
 [![HTML5 & Vanilla JS](https://img.shields.io/badge/Frontend-HTML5%20%2F%20Tailwind%20%2F%20JS-F16529?style=for-the-badge&logo=html5&logoColor=white)](https://developer.mozilla.org/en-US/docs/Web/JavaScript)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg?style=for-the-badge)](LICENSE)
+[![Live Demo](https://img.shields.io/badge/Demo-Live%20on%20GitHub%20Pages-2ea44f?style=for-the-badge&logo=githubpages&logoColor=white)](https://naviyagaming.github.io/php-cookies-sessions-lab/)
 [![Zero Build Steps](https://img.shields.io/badge/Zero%20Build-Runs%20Anywhere-success?style=for-the-badge)]()
-[![GitHub Pages Ready](https://img.shields.io/badge/Deploy-GitHub%20Pages-blue?style=for-the-badge&logo=github)](https://pages.github.com/)
 
 > An interactive visual educational laboratory and runnable PHP sandbox designed to demystify how **HTTP Cookies**, **PHP Sessions**, **Request/Response Headers**, and **Server-Side State** work under the hood.
 
@@ -120,7 +120,7 @@ You do not need PHP, Apache, or Node.js installed to use the visual simulator:
 
 1. Clone or download this repository:
    ```bash
-   git clone https://github.com/<your-username>/php-cookies-sessions-lab.git
+   git clone https://github.com/NaviyaGaming/php-cookies-sessions-lab.git
    cd php-cookies-sessions-lab
    ```
 2. Double-click `index.html` to open it in Google Chrome, Microsoft Edge, Firefox, or Safari.
@@ -178,18 +178,13 @@ php-cookies-sessions-lab/
 
 ---
 
-## 🌐 Deploy to GitHub Pages (Free Instant Hosting)
+## 🌐 Live Demo on GitHub Pages
 
-You can host the interactive simulator online for free via GitHub Pages:
+The interactive visual simulator is hosted live and free on GitHub Pages:
 
-1. Push this repository to GitHub.
-2. Navigate to your repository's **Settings** tab.
-3. Select **Pages** from the left-hand navigation.
-4. Under **Branch**, select `main` (or `master`) and `/ (root)`, then click **Save**.
-5. Within 1–2 minutes, your interactive lab will be live at:
-   ```text
-   https://<your-username>.github.io/<your-repository-name>/
-   ```
+👉 **[Launch Interactive Lab Demo](https://naviyagaming.github.io/php-cookies-sessions-lab/)**
+
+*(No installation, servers, or setup required—opens directly in your browser!)*
 
 ---
 
