@@ -1,0 +1,1709 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PHP Cookies & Sessions — Interactive Visual Lab</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Font Awesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <!-- Google Fonts: Inter & JetBrains Mono -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                        mono: ['JetBrains Mono', 'monospace'],
+                    },
+                    colors: {
+                        php: {
+                            DEFAULT: '#777BB4',
+                            light: '#8892BF',
+                            dark: '#4F5B93'
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+
+    <style>
+        /* Custom Scrollbars & Animations */
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: rgba(15, 23, 42, 0.3);
+        }
+        ::-webkit-scrollbar-thumb {
+            background: rgba(100, 116, 139, 0.5);
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: rgba(148, 163, 184, 0.8);
+        }
+
+        @keyframes pulseGlow {
+            0%, 100% { box-shadow: 0 0 0 0 rgba(99, 102, 241, 0.4); }
+            50% { box-shadow: 0 0 0 8px rgba(99, 102, 241, 0); }
+        }
+        .animate-glow {
+            animation: pulseGlow 1.5s infinite;
+        }
+
+        @keyframes packetRight {
+            0% { transform: translateX(-100%); opacity: 0; }
+            20% { opacity: 1; }
+            80% { opacity: 1; }
+            100% { transform: translateX(100%); opacity: 0; }
+        }
+        @keyframes packetLeft {
+            0% { transform: translateX(100%); opacity: 0; }
+            20% { opacity: 1; }
+            80% { opacity: 1; }
+            100% { transform: translateX(-100%); opacity: 0; }
+        }
+        .packet-req {
+            animation: packetRight 0.9s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+        }
+        .packet-res {
+            animation: packetLeft 0.9s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+        }
+
+        .highlight-flash {
+            transition: all 0.3s ease;
+            box-shadow: 0 0 0 2px #38bdf8, 0 0 15px rgba(56, 189, 248, 0.35);
+        }
+    </style>
+</head>
+<body class="bg-slate-50 text-slate-900 dark:bg-slate-950 dark:text-slate-100 font-sans min-h-screen flex flex-col transition-colors duration-200">
+
+    <!-- Top Navigation Bar -->
+    <header class="sticky top-0 z-40 backdrop-blur-md bg-white/85 dark:bg-slate-900/85 border-b border-slate-200 dark:border-slate-800">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between gap-4">
+            <!-- Brand -->
+            <div class="flex items-center gap-3">
+                <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center text-white shadow-md shadow-indigo-500/20">
+                    <i class="fa-brands fa-php text-2xl"></i>
+                </div>
+                <div>
+                    <div class="flex items-center gap-2">
+                        <h1 class="font-bold text-base sm:text-lg tracking-tight">PHP State Lab</h1>
+                        <span class="hidden sm:inline-block text-xs font-mono uppercase px-2 py-0.5 rounded-full bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 border border-indigo-500/20">Cookies &amp; Sessions</span>
+                    </div>
+                    <p class="text-xs text-slate-500 dark:text-slate-400 hidden sm:block">Interactive HTTP Header, Superglobal &amp; Session File Simulator</p>
+                </div>
+            </div>
+
+            <!-- Navigation Tabs -->
+            <nav class="flex items-center bg-slate-100 dark:bg-slate-800/90 p-1 rounded-xl border border-slate-200 dark:border-slate-700/70">
+                <button onclick="switchTab('simulator')" id="tabBtn-simulator" class="tab-btn px-3 sm:px-4 py-1.5 rounded-lg text-xs sm:text-sm font-medium transition-all bg-white dark:bg-slate-900 text-indigo-600 dark:text-indigo-400 shadow-sm flex items-center gap-1.5">
+                    <i class="fa-solid fa-flask"></i>
+                    <span>Interactive Simulator</span>
+                </button>
+                <button onclick="switchTab('comparison')" id="tabBtn-comparison" class="tab-btn px-3 sm:px-4 py-1.5 rounded-lg text-xs sm:text-sm font-medium transition-all text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white flex items-center gap-1.5">
+                    <i class="fa-solid fa-scale-balanced"></i>
+                    <span>Comparison &amp; Quiz</span>
+                </button>
+                <button onclick="switchTab('code')" id="tabBtn-code" class="tab-btn px-3 sm:px-4 py-1.5 rounded-lg text-xs sm:text-sm font-medium transition-all text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white flex items-center gap-1.5">
+                    <i class="fa-solid fa-file-code"></i>
+                    <span>Runnable PHP File</span>
+                </button>
+            </nav>
+
+            <!-- Right Actions -->
+            <div class="flex items-center gap-2">
+                <button onclick="resetAllSimulation()" title="Reset Lab State" class="px-2.5 py-1.5 rounded-lg text-xs font-medium bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700 transition flex items-center gap-1.5">
+                    <i class="fa-solid fa-rotate-left"></i>
+                    <span class="hidden md:inline">Reset</span>
+                </button>
+                <button onclick="toggleTheme()" id="themeToggleBtn" aria-label="Toggle theme" class="w-9 h-9 rounded-lg bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700 flex items-center justify-center transition">
+                    <i class="fa-solid fa-sun text-amber-400 hidden dark:inline"></i>
+                    <i class="fa-solid fa-moon text-slate-700 inline dark:hidden"></i>
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Container -->
+    <main class="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6">
+
+        <!-- ========================================== -->
+        <!-- TAB 1: INTERACTIVE SIMULATOR               -->
+        <!-- ========================================== -->
+        <section id="tab-simulator" class="space-y-6">
+
+            <!-- Quick Walkthrough Banner -->
+            <div class="bg-gradient-to-r from-indigo-500/10 via-purple-500/10 to-sky-500/10 border border-indigo-500/20 rounded-2xl p-4 flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+                <div class="flex items-start gap-3">
+                    <div class="w-9 h-9 rounded-xl bg-indigo-500/20 border border-indigo-500/30 text-indigo-600 dark:text-indigo-400 flex items-center justify-center shrink-0 mt-0.5">
+                        <i class="fa-solid fa-lightbulb"></i>
+                    </div>
+                    <div>
+                        <h2 class="text-sm font-semibold text-slate-900 dark:text-white">How HTTP, Cookies, and PHP Sessions Work Together</h2>
+                        <p class="text-xs text-slate-600 dark:text-slate-300 mt-0.5 leading-relaxed">
+                            HTTP is <strong>stateless</strong>. A <strong>Cookie</strong> stores small data directly inside the user's browser and sends it with every request. A <strong>PHP Session</strong> stores data on the server inside <code class="font-mono text-indigo-600 dark:text-indigo-400">/tmp/sess_...</code> and uses a single browser cookie named <code class="font-mono text-amber-600 dark:text-amber-400">PHPSESSID</code> as the locker key!
+                        </p>
+                    </div>
+                </div>
+                <div class="flex flex-wrap items-center gap-2 shrink-0">
+                    <button onclick="runDemoScenario('login')" class="px-3 py-1.5 rounded-lg text-xs font-semibold bg-indigo-600 hover:bg-indigo-500 text-white shadow-sm transition flex items-center gap-1.5">
+                        <i class="fa-solid fa-play text-[10px]"></i> Demo: User Login Session
+                    </button>
+                    <button onclick="runDemoScenario('theme')" class="px-3 py-1.5 rounded-lg text-xs font-semibold bg-amber-500/20 hover:bg-amber-500/30 text-amber-700 dark:text-amber-300 border border-amber-500/30 transition flex items-center gap-1.5">
+                        <i class="fa-solid fa-cookie-bite text-xs"></i> Demo: Remember Theme Cookie
+                    </button>
+                </div>
+            </div>
+
+            <!-- Interactive Control Deck (Cookies vs Sessions Actions) -->
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+
+                <!-- 1. PHP Cookie Controls -->
+                <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-5 shadow-sm">
+                    <div class="flex items-center justify-between mb-4">
+                        <div class="flex items-center gap-2.5">
+                            <span class="w-8 h-8 rounded-lg bg-amber-500/15 text-amber-600 dark:text-amber-400 flex items-center justify-center border border-amber-500/30">
+                                <i class="fa-solid fa-cookie-bite"></i>
+                            </span>
+                            <div>
+                                <h3 class="font-bold text-sm sm:text-base flex items-center gap-2">
+                                    1. Cookie Controls
+                                    <span class="text-[11px] font-mono px-2 py-0.5 rounded bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20">setcookie()</span>
+                                </h3>
+                                <p class="text-xs text-slate-500 dark:text-slate-400">Saved in Browser; sent via <code class="font-mono">Cookie</code> HTTP header</p>
+                            </div>
+                        </div>
+                        <div class="flex gap-1">
+                            <button onclick="fillCookiePreset('theme', 'dark', 60)" class="text-[11px] px-2 py-1 rounded bg-slate-100 dark:bg-slate-800 hover:bg-amber-500/20 text-slate-600 dark:text-slate-300 transition">Preset: theme</button>
+                            <button onclick="fillCookiePreset('lang', 'en_US', 120)" class="text-[11px] px-2 py-1 rounded bg-slate-100 dark:bg-slate-800 hover:bg-amber-500/20 text-slate-600 dark:text-slate-300 transition">Preset: lang</button>
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-3">
+                        <div>
+                            <label class="block text-[11px] font-mono uppercase text-slate-500 dark:text-slate-400 mb-1">$name</label>
+                            <input id="cookieNameInput" type="text" value="theme" placeholder="e.g. theme" class="w-full px-3 py-2 rounded-lg text-sm font-mono bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-700 focus:outline-none focus:border-amber-500">
+                        </div>
+                        <div>
+                            <label class="block text-[11px] font-mono uppercase text-slate-500 dark:text-slate-400 mb-1">$value</label>
+                            <input id="cookieValInput" type="text" value="dark" placeholder="e.g. dark" class="w-full px-3 py-2 rounded-lg text-sm font-mono bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-700 focus:outline-none focus:border-amber-500">
+                        </div>
+                        <div>
+                            <label class="block text-[11px] font-mono uppercase text-slate-500 dark:text-slate-400 mb-1">TTL (Seconds)</label>
+                            <input id="cookieExpInput" type="number" value="60" min="5" max="86400" class="w-full px-3 py-2 rounded-lg text-sm font-mono bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-700 focus:outline-none focus:border-amber-500">
+                        </div>
+                    </div>
+
+                    <div class="flex flex-wrap items-center justify-between gap-2 pt-2 border-t border-slate-100 dark:border-slate-800/80">
+                        <label class="flex items-center gap-2 text-xs text-slate-600 dark:text-slate-400 cursor-pointer select-none">
+                            <input id="cookieHttpOnly" type="checkbox" checked class="rounded border-slate-300 text-amber-500 focus:ring-amber-500">
+                            <span><code class="font-mono text-[11px]">httponly=true</code> (Hide from <code class="font-mono text-[11px]">document.cookie</code> XSS)</span>
+                        </label>
+                        <div class="flex items-center gap-2">
+                            <button onclick="handleSetCookie()" class="px-3.5 py-2 rounded-xl text-xs font-semibold bg-amber-500 hover:bg-amber-600 text-slate-950 shadow-sm transition flex items-center gap-1.5">
+                                <i class="fa-solid fa-plus"></i> Run <span class="font-mono">setcookie()</span>
+                            </button>
+                            <button onclick="handleDeleteCookieInput()" class="px-3 py-2 rounded-xl text-xs font-medium bg-rose-500/10 hover:bg-rose-500/20 text-rose-600 dark:text-rose-400 border border-rose-500/20 transition flex items-center gap-1">
+                                <i class="fa-solid fa-trash-can"></i> Expire (<span class="font-mono">time()-3600</span>)
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 2. PHP Session Controls -->
+                <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-5 shadow-sm">
+                    <div class="flex items-center justify-between mb-4">
+                        <div class="flex items-center gap-2.5">
+                            <span class="w-8 h-8 rounded-lg bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 flex items-center justify-center border border-emerald-500/30">
+                                <i class="fa-solid fa-server"></i>
+                            </span>
+                            <div>
+                                <h3 class="font-bold text-sm sm:text-base flex items-center gap-2">
+                                    2. Session Controls
+                                    <span id="sessionStatusBadge" class="text-[11px] font-mono px-2 py-0.5 rounded bg-slate-200 dark:bg-slate-800 text-slate-600 dark:text-slate-400">INACTIVE</span>
+                                </h3>
+                                <p class="text-xs text-slate-500 dark:text-slate-400">Stored in Server <code class="font-mono">/tmp</code>; linked by <code class="font-mono">PHPSESSID</code> cookie</p>
+                            </div>
+                        </div>
+
+                        <button onclick="handleSessionStart()" id="btnSessionStart" class="px-3.5 py-1.5 rounded-xl text-xs font-semibold bg-emerald-600 hover:bg-emerald-500 text-white shadow-sm transition flex items-center gap-1.5 animate-glow">
+                            <i class="fa-solid fa-power-off"></i> <span class="font-mono">session_start()</span>
+                        </button>
+                    </div>
+
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-3">
+                        <div>
+                            <label class="block text-[11px] font-mono uppercase text-slate-500 dark:text-slate-400 mb-1">$_SESSION[$key]</label>
+                            <input id="sessionKeyInput" type="text" value="username" placeholder="e.g. username" class="w-full px-3 py-2 rounded-lg text-sm font-mono bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-700 focus:outline-none focus:border-emerald-500">
+                        </div>
+                        <div>
+                            <label class="block text-[11px] font-mono uppercase text-slate-500 dark:text-slate-400 mb-1">$value</label>
+                            <input id="sessionValInput" type="text" value="malith_dev" placeholder="e.g. malith_dev" class="w-full px-3 py-2 rounded-lg text-sm font-mono bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-700 focus:outline-none focus:border-emerald-500">
+                        </div>
+                    </div>
+
+                    <div class="flex flex-wrap items-center justify-between gap-2 pt-2 border-t border-slate-100 dark:border-slate-800/80">
+                        <div class="flex items-center gap-1.5">
+                            <button onclick="fillSessionPreset('role', 'admin')" class="text-[11px] px-2 py-1 rounded bg-slate-100 dark:bg-slate-800 hover:bg-emerald-500/20 text-slate-600 dark:text-slate-300 transition">+ role</button>
+                            <button onclick="fillSessionPreset('cart_items', '3')" class="text-[11px] px-2 py-1 rounded bg-slate-100 dark:bg-slate-800 hover:bg-emerald-500/20 text-slate-600 dark:text-slate-300 transition">+ cart</button>
+                        </div>
+                        <div class="flex flex-wrap items-center gap-2">
+                            <button onclick="handleSetSessionVar()" class="px-3.5 py-2 rounded-xl text-xs font-semibold bg-emerald-500 hover:bg-emerald-600 text-slate-950 shadow-sm transition flex items-center gap-1.5">
+                                <i class="fa-solid fa-pen-to-square"></i> Set <span class="font-mono">$_SESSION</span>
+                            </button>
+                            <button onclick="handleSessionUnset()" title="Clears all variables in $_SESSION array" class="px-2.5 py-2 rounded-xl text-xs font-medium bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700 transition font-mono">
+                                session_unset()
+                            </button>
+                            <button onclick="handleSessionDestroy()" title="Deletes server session file in /tmp" class="px-2.5 py-2 rounded-xl text-xs font-medium bg-rose-500/10 hover:bg-rose-500/20 text-rose-600 dark:text-rose-400 border border-rose-500/20 transition font-mono">
+                                session_destroy()
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ========================================================== -->
+            <!-- VISUAL SPLIT ARCHITECTURE: BROWSER <-> HTTP <-> PHP SERVER -->
+            <!-- ========================================================== -->
+            <div class="grid grid-cols-1 lg:grid-cols-12 gap-5 items-stretch">
+
+                <!-- LEFT COLUMN: CLIENT BROWSER (4 Cols) -->
+                <div id="browserPanel" class="lg:col-span-4 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl flex flex-col justify-between overflow-hidden shadow-sm">
+                    <div>
+                        <!-- Browser Window Chrome -->
+                        <div class="bg-slate-100 dark:bg-slate-800/90 px-4 py-3 border-b border-slate-200 dark:border-slate-700/80 flex items-center justify-between gap-2">
+                            <div class="flex items-center gap-2">
+                                <span class="w-3 h-3 rounded-full bg-rose-500 inline-block"></span>
+                                <span class="w-3 h-3 rounded-full bg-amber-400 inline-block"></span>
+                                <span class="w-3 h-3 rounded-full bg-emerald-500 inline-block"></span>
+                                <span class="ml-1 font-bold text-xs text-slate-700 dark:text-slate-200 flex items-center gap-1.5">
+                                    <i class="fa-solid fa-globe text-sky-500"></i> Client Browser
+                                </span>
+                            </div>
+                            <div class="flex items-center gap-1.5">
+                                <button onclick="simulatePageReload()" class="px-2.5 py-1 rounded-lg bg-sky-500 hover:bg-sky-600 text-white text-[11px] font-semibold transition flex items-center gap-1 shadow-sm" title="Send a new HTTP GET request with current Browser Cookies">
+                                    <i class="fa-solid fa-rotate-right"></i> Reload Page
+                                </button>
+                                <button onclick="simulateBrowserClose()" class="px-2 py-1 rounded-lg bg-slate-200 hover:bg-rose-500/20 dark:bg-slate-700 dark:hover:bg-rose-500/30 text-slate-700 dark:text-slate-200 hover:text-rose-600 text-[11px] font-medium transition" title="Simulates closing the browser (deletes session cookies with no expiry)">
+                                    <i class="fa-solid fa-xmark"></i> Close Browser
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Address Bar -->
+                        <div class="px-4 py-2 bg-slate-50 dark:bg-slate-950/60 border-b border-slate-200 dark:border-slate-800 flex items-center gap-2 text-xs font-mono text-slate-500 dark:text-slate-400">
+                            <i class="fa-solid fa-lock text-emerald-500 text-[10px]"></i>
+                            <span class="truncate">http://localhost:8000/dashboard.php</span>
+                        </div>
+
+                        <!-- Simulated Webpage Preview -->
+                        <div class="p-4 border-b border-slate-200 dark:border-slate-800">
+                            <div class="text-[11px] font-mono uppercase tracking-wider text-slate-400 mb-2 flex items-center justify-between">
+                                <span>Rendered Page Preview</span>
+                                <span id="previewThemeIndicator" class="px-1.5 py-0.5 rounded bg-slate-100 dark:bg-slate-800 text-[10px]">Theme: default</span>
+                            </div>
+                            <div id="simulatedWebpage" class="rounded-xl p-3.5 border border-slate-200 dark:border-slate-700/80 bg-slate-50 dark:bg-slate-800/50 transition-colors">
+                                <div class="flex items-center justify-between">
+                                    <div class="flex items-center gap-2.5">
+                                        <div id="avatarCircle" class="w-9 h-9 rounded-full bg-indigo-500/20 text-indigo-500 flex items-center justify-center font-bold text-sm">
+                                            ?
+                                        </div>
+                                        <div>
+                                            <div id="webpageGreeting" class="text-xs font-bold">Welcome, Guest!</div>
+                                            <div id="webpageSubtext" class="text-[11px] opacity-75">No active PHP session found.</div>
+                                        </div>
+                                    </div>
+                                    <div id="webpageBadges" class="flex flex-col items-end gap-1"></div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Browser Cookie Storage Table -->
+                        <div class="p-4">
+                            <div class="flex items-center justify-between mb-2">
+                                <h4 class="text-xs font-bold uppercase tracking-wider text-slate-600 dark:text-slate-300 flex items-center gap-1.5">
+                                    <i class="fa-solid fa-database text-amber-500"></i> Browser Cookie Jar
+                                </h4>
+                                <span id="browserCookieCount" class="text-[11px] font-mono text-slate-400">0 cookies</span>
+                            </div>
+
+                            <div id="browserCookieList" class="space-y-2 max-h-60 overflow-y-auto pr-1">
+                                <!-- Populated via JS -->
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Footer Note: document.cookie inspector -->
+                    <div class="p-3 bg-slate-50 dark:bg-slate-950/80 border-t border-slate-200 dark:border-slate-800">
+                        <div class="text-[10px] font-mono text-slate-400 uppercase mb-1 flex items-center justify-between">
+                            <span>JS Console: <code class="text-amber-500">document.cookie</code></span>
+                            <span class="text-[10px] text-slate-400">(Excludes HttpOnly)</span>
+                        </div>
+                        <div id="jsDocumentCookieBox" class="font-mono text-xs text-amber-600 dark:text-amber-400 bg-white dark:bg-slate-900 px-2.5 py-1.5 rounded border border-slate-200 dark:border-slate-800 truncate">
+                            ""
+                        </div>
+                    </div>
+                </div>
+
+                <!-- MIDDLE COLUMN: HTTP NETWORK & LIVE PHP CODE (4 Cols) -->
+                <div class="lg:col-span-4 flex flex-col gap-4">
+
+                    <!-- HTTP Request/Response Inspector -->
+                    <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-4 shadow-sm flex-1 flex flex-col justify-between">
+                        <div>
+                            <div class="flex items-center justify-between mb-3">
+                                <h4 class="text-xs font-bold uppercase tracking-wider text-slate-600 dark:text-slate-300 flex items-center gap-1.5">
+                                    <i class="fa-solid fa-network-wired text-sky-500"></i> HTTP Network Bridge
+                                </h4>
+                                <span id="httpCycleBadge" class="text-[10px] font-mono px-2 py-0.5 rounded-full bg-sky-500/10 text-sky-600 dark:text-sky-400 border border-sky-500/20">
+                                    Ready
+                                </span>
+                            </div>
+
+                            <!-- Animated Packet Track -->
+                            <div class="relative h-12 rounded-xl bg-slate-100 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 mb-3 overflow-hidden flex items-center justify-between px-3">
+                                <span class="text-[10px] font-mono uppercase text-slate-400 z-10 flex items-center gap-1">
+                                    <i class="fa-solid fa-laptop"></i> Browser
+                                </span>
+                                <div class="flex-1 mx-3 h-0.5 bg-slate-300 dark:bg-slate-800 relative">
+                                    <div id="packetIndicator" class="hidden absolute -top-2.5 left-1/2 -translate-x-1/2 px-2 py-0.5 rounded-full text-[10px] font-mono font-bold bg-indigo-600 text-white shadow whitespace-nowrap">
+                                        HTTP Packet
+                                    </div>
+                                </div>
+                                <span class="text-[10px] font-mono uppercase text-slate-400 z-10 flex items-center gap-1">
+                                    Server <i class="fa-solid fa-server"></i>
+                                </span>
+                            </div>
+
+                            <!-- Request Header Box -->
+                            <div class="mb-3">
+                                <div class="flex items-center justify-between text-[11px] font-mono text-sky-600 dark:text-sky-400 mb-1">
+                                    <span><i class="fa-solid fa-arrow-right-long mr-1"></i>1. HTTP Request Header (Browser &rarr; PHP)</span>
+                                </div>
+                                <pre id="httpRequestBox" class="p-2.5 rounded-xl bg-slate-900 text-slate-200 font-mono text-[11px] leading-relaxed overflow-x-auto border border-slate-800">GET /dashboard.php HTTP/1.1
+Host: localhost:8000
+<span class="text-slate-500"># No Cookie header sent</span></pre>
+                            </div>
+
+                            <!-- Response Header Box -->
+                            <div>
+                                <div class="flex items-center justify-between text-[11px] font-mono text-emerald-600 dark:text-emerald-400 mb-1">
+                                    <span><i class="fa-solid fa-arrow-left-long mr-1"></i>2. HTTP Response Header (PHP &rarr; Browser)</span>
+                                </div>
+                                <pre id="httpResponseBox" class="p-2.5 rounded-xl bg-slate-900 text-slate-200 font-mono text-[11px] leading-relaxed overflow-x-auto border border-slate-800">HTTP/1.1 200 OK
+Content-Type: text/html; charset=UTF-8
+<span class="text-slate-500"># No Set-Cookie header queued</span></pre>
+                            </div>
+                        </div>
+
+                        <!-- Important PHP Quirk Callout -->
+                        <div id="phpQuirkNotice" class="mt-3 p-2.5 rounded-xl bg-amber-500/10 border border-amber-500/20 text-[11px] text-amber-800 dark:text-amber-300 leading-relaxed">
+                            <i class="fa-solid fa-circle-info mr-1"></i>
+                            <strong>Key PHP Rule:</strong> Calling <code class="font-mono">setcookie()</code> sends a <code class="font-mono">Set-Cookie</code> header to the browser. <code class="font-mono">$_COOKIE</code> on the server only updates when the browser sends the cookie back on the <strong>next HTTP request</strong> (click <em>Reload Page</em> to observe!).
+                        </div>
+                    </div>
+
+                    <!-- Live Triggered PHP Code Snippet -->
+                    <div class="bg-slate-900 border border-slate-800 rounded-2xl p-4 shadow-sm">
+                        <div class="flex items-center justify-between mb-2">
+                            <span class="text-xs font-bold uppercase tracking-wider text-indigo-400 flex items-center gap-1.5">
+                                <i class="fa-brands fa-php text-base"></i> Executed PHP Code
+                            </span>
+                            <span id="lastActionTime" class="text-[10px] font-mono text-slate-400">Live Trace</span>
+                        </div>
+                        <pre id="livePhpSnippet" class="font-mono text-xs text-slate-100 bg-slate-950 p-3 rounded-xl border border-slate-800/90 overflow-x-auto leading-relaxed">&lt;?php
+// Click any Cookie or Session control above
+// to inspect the exact PHP code &amp; HTTP headers!
+?&gt;</pre>
+                        <p id="livePhpExplanation" class="text-xs text-slate-400 mt-2 leading-relaxed">
+                            Interact with the controls above to see how PHP processes cookies and sessions under the hood.
+                        </p>
+                    </div>
+                </div>
+
+                <!-- RIGHT COLUMN: PHP SERVER RAM & DISK (4 Cols) -->
+                <div id="serverPanel" class="lg:col-span-4 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl flex flex-col justify-between overflow-hidden shadow-sm">
+                    <div>
+                        <!-- Server Header -->
+                        <div class="bg-slate-100 dark:bg-slate-800/90 px-4 py-3 border-b border-slate-200 dark:border-slate-700/80 flex items-center justify-between">
+                            <div class="flex items-center gap-2">
+                                <i class="fa-solid fa-microchip text-indigo-500"></i>
+                                <span class="font-bold text-xs text-slate-700 dark:text-slate-200">PHP 8.3 Server Engine</span>
+                            </div>
+                            <span class="text-[11px] font-mono px-2 py-0.5 rounded bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 border border-indigo-500/20">
+                                Apache / PHP-FPM
+                            </span>
+                        </div>
+
+                        <div class="p-4 space-y-4">
+                            <!-- $_COOKIE Superglobal Inspector -->
+                            <div>
+                                <div class="flex items-center justify-between mb-1.5">
+                                    <span class="text-xs font-bold font-mono text-amber-600 dark:text-amber-400 flex items-center gap-1.5">
+                                        <i class="fa-solid fa-brackets-curly"></i> $_COOKIE Superglobal
+                                    </span>
+                                    <span class="text-[10px] text-slate-400">Populated from Request Header</span>
+                                </div>
+                                <pre id="serverCookieArray" class="p-3 rounded-xl bg-slate-950 text-amber-300 font-mono text-xs border border-slate-800 overflow-x-auto min-h-[76px]">array(0) {
+}</pre>
+                            </div>
+
+                            <!-- $_SESSION Superglobal Inspector -->
+                            <div>
+                                <div class="flex items-center justify-between mb-1.5">
+                                    <span class="text-xs font-bold font-mono text-emerald-600 dark:text-emerald-400 flex items-center gap-1.5">
+                                        <i class="fa-solid fa-brackets-curly"></i> $_SESSION Superglobal
+                                    </span>
+                                    <span id="serverSessionHint" class="text-[10px] text-slate-400">Requires session_start()</span>
+                                </div>
+                                <pre id="serverSessionArray" class="p-3 rounded-xl bg-slate-950 text-emerald-300 font-mono text-xs border border-slate-800 overflow-x-auto min-h-[88px]">// Uninitialized
+// Call session_start() to load</pre>
+                            </div>
+
+                            <!-- Server Disk Storage (/tmp/sess_...) -->
+                            <div>
+                                <div class="flex items-center justify-between mb-1.5">
+                                    <span class="text-xs font-bold text-indigo-600 dark:text-indigo-400 flex items-center gap-1.5">
+                                        <i class="fa-solid fa-hard-drive"></i> Server Disk (<code class="font-mono">session.save_path</code>)
+                                    </span>
+                                    <span class="text-[10px] font-mono text-slate-400">/tmp/</span>
+                                </div>
+                                <div id="serverDiskContainer" class="p-3 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 space-y-2">
+                                    <!-- Populated via JS -->
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Server Security Experiment Footer -->
+                    <div class="p-3 bg-slate-50 dark:bg-slate-950/80 border-t border-slate-200 dark:border-slate-800 flex items-center justify-between gap-2">
+                        <div class="text-[11px] text-slate-500 dark:text-slate-400">
+                            <i class="fa-solid fa-shield-halved text-indigo-500 mr-1"></i>
+                            <strong>Security:</strong> Regenerate Session ID after login!
+                        </div>
+                        <button onclick="handleRegenerateSessionId()" class="px-2.5 py-1 rounded-lg text-[11px] font-mono font-medium bg-indigo-500/15 hover:bg-indigo-500/25 text-indigo-600 dark:text-indigo-300 border border-indigo-500/30 transition shrink-0">
+                            session_regenerate_id()
+                        </button>
+                    </div>
+                </div>
+
+            </div>
+        </section>
+
+        <!-- ========================================== -->
+        <!-- TAB 2: SIDE-BY-SIDE COMPARISON & QUIZ      -->
+        <!-- ========================================== -->
+        <section id="tab-comparison" class="hidden space-y-8">
+
+            <!-- Header -->
+            <div class="text-center max-w-2xl mx-auto">
+                <span class="text-xs font-mono uppercase tracking-widest px-3 py-1 rounded-full bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 border border-indigo-500/20">Architecture Reference</span>
+                <h2 class="text-2xl sm:text-3xl font-extrabold mt-3">Cookies vs. Sessions in PHP</h2>
+                <p class="text-sm text-slate-600 dark:text-slate-400 mt-2">
+                    Both solve HTTP's statelessness, but they differ fundamentally in <strong>where data lives</strong>, <strong>how secure it is</strong>, and <strong>when it expires</strong>.
+                </p>
+            </div>
+
+            <!-- Side-by-Side Comparison Table -->
+            <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl overflow-hidden shadow-sm">
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left border-collapse">
+                        <thead>
+                            <tr class="border-b border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950/60">
+                                <th class="py-4 px-5 text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 w-1/4">Feature / Criteria</th>
+                                <th class="py-4 px-5 text-sm font-bold text-amber-600 dark:text-amber-400 w-3/8 border-l border-slate-200 dark:border-slate-800">
+                                    <i class="fa-solid fa-cookie-bite mr-1.5"></i> PHP Cookies
+                                </th>
+                                <th class="py-4 px-5 text-sm font-bold text-emerald-600 dark:text-emerald-400 w-3/8 border-l border-slate-200 dark:border-slate-800">
+                                    <i class="fa-solid fa-server mr-1.5"></i> PHP Sessions
+                                </th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-slate-200 dark:divide-slate-800 text-sm">
+                            <tr>
+                                <td class="py-3.5 px-5 font-semibold text-slate-700 dark:text-slate-300">Storage Location</td>
+                                <td class="py-3.5 px-5 border-l border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-300">
+                                    <strong>Client-side</strong> (User's Web Browser SQLite/text file).
+                                </td>
+                                <td class="py-3.5 px-5 border-l border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-300">
+                                    <strong>Server-side</strong> (File in <code class="font-mono text-xs">/tmp/sess_...</code>, Redis, or Database).
+                                </td>
+                            </tr>
+                            <tr>
+                                <td class="py-3.5 px-5 font-semibold text-slate-700 dark:text-slate-300">Security &amp; Tampering</td>
+                                <td class="py-3.5 px-5 border-l border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-300">
+                                    <span class="inline-block px-2 py-0.5 rounded text-xs font-medium bg-rose-500/10 text-rose-600 dark:text-rose-400 mr-1">Lower</span>
+                                    Users can inspect, edit, or spoof cookies in Browser DevTools. Never store passwords or roles!
+                                </td>
+                                <td class="py-3.5 px-5 border-l border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-300">
+                                    <span class="inline-block px-2 py-0.5 rounded text-xs font-medium bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 mr-1">High</span>
+                                    Data stays hidden on the server. Only a random <code class="font-mono text-xs">PHPSESSID</code> token is sent to the browser.
+                                </td>
+                            </tr>
+                            <tr>
+                                <td class="py-3.5 px-5 font-semibold text-slate-700 dark:text-slate-300">Maximum Data Size</td>
+                                <td class="py-3.5 px-5 border-l border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-300">
+                                    <strong>~4 KB (4,096 bytes)</strong> per cookie (sent on every HTTP request, slowing bandwidth if large).
+                                </td>
+                                <td class="py-3.5 px-5 border-l border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-300">
+                                    <strong>Virtually Unlimited</strong> (Limited only by server disk space or PHP <code class="font-mono text-xs">memory_limit</code>).
+                                </td>
+                            </tr>
+                            <tr>
+                                <td class="py-3.5 px-5 font-semibold text-slate-700 dark:text-slate-300">Data Types Supported</td>
+                                <td class="py-3.5 px-5 border-l border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-300">
+                                    <strong>Strings only</strong> (Arrays/objects must be manually <code class="font-mono text-xs">json_encode()</code>'d).
+                                </td>
+                                <td class="py-3.5 px-5 border-l border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-300">
+                                    <strong>Any PHP Type</strong> (Strings, Integers, Arrays, Booleans, Objects — auto-serialized by PHP).
+                                </td>
+                            </tr>
+                            <tr>
+                                <td class="py-3.5 px-5 font-semibold text-slate-700 dark:text-slate-300">Lifespan / Expiry</td>
+                                <td class="py-3.5 px-5 border-l border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-300">
+                                    Configurable via <code class="font-mono text-xs">time() + $seconds</code>. Can persist for days, months, or years across browser restarts.
+                                </td>
+                                <td class="py-3.5 px-5 border-l border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-300">
+                                    Ends when the user <strong>closes the browser</strong> or after server inactivity (<code class="font-mono text-xs">session.gc_maxlifetime</code> = 1440s / 24 mins).
+                                </td>
+                            </tr>
+                            <tr>
+                                <td class="py-3.5 px-5 font-semibold text-slate-700 dark:text-slate-300">PHP Functions &amp; Globals</td>
+                                <td class="py-3.5 px-5 border-l border-slate-200 dark:border-slate-800 font-mono text-xs text-amber-600 dark:text-amber-400 space-y-1">
+                                    <div>setcookie($name, $val, $exp, "/")</div>
+                                    <div>$_COOKIE['name']</div>
+                                    <div>setcookie($name, "", time() - 3600)</div>
+                                </td>
+                                <td class="py-3.5 px-5 border-l border-slate-200 dark:border-slate-800 font-mono text-xs text-emerald-600 dark:text-emerald-400 space-y-1">
+                                    <div>session_start()</div>
+                                    <div>$_SESSION['key'] = $val</div>
+                                    <div>session_unset() / session_destroy()</div>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Interactive Scenario Quiz: Cookie or Session? -->
+            <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-6 shadow-sm">
+                <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-6">
+                    <div>
+                        <h3 class="text-lg font-bold flex items-center gap-2">
+                            <i class="fa-solid fa-brain text-indigo-500"></i>
+                            Interactive Architecture Challenge: Cookie or Session?
+                        </h3>
+                        <p class="text-xs text-slate-500 dark:text-slate-400">Click your answer for each real-world scenario to test your understanding.</p>
+                    </div>
+                    <span id="quizScoreBadge" class="text-xs font-mono px-3 py-1 rounded-full bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 border border-indigo-500/20 self-start sm:self-auto">
+                        Answered: 0 / 4
+                    </span>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4" id="quizContainer">
+                    <!-- Populated via JS -->
+                </div>
+            </div>
+        </section>
+
+        <!-- ========================================== -->
+        <!-- TAB 3: RUNNABLE SINGLE-FILE PHP CODE       -->
+        <!-- ========================================== -->
+        <section id="tab-code" class="hidden space-y-6">
+
+            <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-6 shadow-sm">
+                <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-4">
+                    <div>
+                        <div class="flex items-center gap-2">
+                            <span class="px-2.5 py-1 rounded-md text-xs font-mono font-bold bg-indigo-500/15 text-indigo-600 dark:text-indigo-400 border border-indigo-500/30">index.php</span>
+                            <h2 class="text-lg font-bold">Complete Runnable PHP Sandbox Script</h2>
+                        </div>
+                        <p class="text-xs text-slate-500 dark:text-slate-400 mt-1">
+                            Copy this single file into <code class="font-mono text-indigo-500">C:\xampp\htdocs\index.php</code> or run <code class="font-mono text-indigo-500">php -S localhost:8000</code> in your terminal to test real PHP cookies and sessions!
+                        </p>
+                    </div>
+
+                    <button onclick="copyRunnablePhpCode()" id="copyPhpBtn" class="px-4 py-2.5 rounded-xl text-xs font-semibold bg-indigo-600 hover:bg-indigo-500 text-white shadow-sm transition flex items-center gap-2 self-start md:self-auto">
+                        <i class="fa-regular fa-copy"></i>
+                        <span>Copy Complete index.php</span>
+                    </button>
+                </div>
+
+                <!-- How to Run Steps -->
+                <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-5">
+                    <div class="p-3 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 text-xs">
+                        <div class="font-bold text-indigo-600 dark:text-indigo-400 mb-1">Step 1: Save File</div>
+                        Save the code below as <code class="font-mono">index.php</code> inside your XAMPP <code class="font-mono">htdocs/</code> folder or any project directory.
+                    </div>
+                    <div class="p-3 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 text-xs">
+                        <div class="font-bold text-indigo-600 dark:text-indigo-400 mb-1">Step 2: Start PHP Server</div>
+                        Start Apache in XAMPP Control Panel, or run <code class="font-mono">php -S localhost:8000</code> in the folder's terminal.
+                    </div>
+                    <div class="p-3 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 text-xs">
+                        <div class="font-bold text-indigo-600 dark:text-indigo-400 mb-1">Step 3: Inspect DevTools</div>
+                        Open <code class="font-mono">http://localhost:8000</code> and check <strong>DevTools &rarr; Application &rarr; Cookies</strong> as you click buttons!
+                    </div>
+                </div>
+
+                <!-- Code Block -->
+                <div class="relative">
+                    <pre id="runnablePhpCodeBlock" class="p-5 rounded-2xl bg-slate-950 text-slate-100 font-mono text-xs leading-relaxed overflow-x-auto border border-slate-800 max-h-[600px]"></pre>
+                </div>
+            </div>
+
+        </section>
+
+    </main>
+
+    <!-- Toast Notification Container -->
+    <div id="toastContainer" class="fixed bottom-5 right-5 z-50 flex flex-col gap-2 pointer-events-none"></div>
+
+    <!-- JavaScript Application Logic -->
+    <script>
+        // =========================================================================
+        // 1. STATE MODEL FOR COOKIE & SESSION SIMULATOR
+        // =========================================================================
+        const state = {
+            // Browser's current Cookie Jar: { name: { value, expiresAt (timestamp or null for session cookie), httpOnly } }
+            browserCookies: {},
+            // Cookies that were sent in the most recent HTTP Request to populate PHP's $_COOKIE
+            serverCookieSuperglobal: {},
+            // Pending Set-Cookie headers queued during the current PHP execution
+            lastSetCookieHeaders: [],
+            // Last HTTP request Cookie header string
+            lastRequestCookieHeader: '',
+            // Is PHP session started during current request?
+            sessionActive: false,
+            // Current session ID on browser/server
+            currentSessionId: null,
+            // Server Disk /tmp/ directory storing session files: { sess_id: { key: value } }
+            serverDiskSessions: {},
+            // Answered quiz items
+            quizAnswers: {}
+        };
+
+        // Helper to generate realistic random hex PHPSESSID
+        function generatePhpSessionId() {
+            const chars = '0123456789abcdef';
+            let id = '';
+            for (let i = 0; i < 26; i++) {
+                id += chars[Math.floor(Math.random() * chars.length)];
+            }
+            return id;
+        }
+
+        // Serialize a JS object into authentic PHP session serialize format: key|s:len:"val";
+        function serializePhpSessionData(dataObj) {
+            if (!dataObj || Object.keys(dataObj).length === 0) {
+                return '# (Empty session file - 0 bytes)';
+            }
+            let out = '';
+            for (const [k, v] of Object.entries(dataObj)) {
+                const strVal = String(v);
+                if (/^\d+$/.test(strVal)) {
+                    out += `${k}|i:${strVal};`;
+                } else {
+                    out += `${k}|s:${strVal.length}:"${strVal}";`;
+                }
+            }
+            return out;
+        }
+
+        // Format PHP Array dump for $_COOKIE and $_SESSION
+        function formatPhpArrayDump(obj) {
+            const entries = Object.entries(obj);
+            if (entries.length === 0) {
+                return `array(0) {\n}`;
+            }
+            let lines = [`array(${entries.length}) {`];
+            for (const [k, v] of entries) {
+                const strVal = String(v);
+                lines.push(`  ["${k}"]=>\n  string(${strVal.length}) "${strVal}"`);
+            }
+            lines.push(`}`);
+            return lines.join('\n');
+        }
+
+        // =========================================================================
+        // 2. CORE PHP ACTIONS (COOKIES & SESSIONS)
+        // =========================================================================
+
+        function fillCookiePreset(name, value, ttl) {
+            document.getElementById('cookieNameInput').value = name;
+            document.getElementById('cookieValInput').value = value;
+            document.getElementById('cookieExpInput').value = ttl;
+        }
+
+        function fillSessionPreset(key, value) {
+            document.getElementById('sessionKeyInput').value = key;
+            document.getElementById('sessionValInput').value = value;
+        }
+
+        // Simulate HTTP Request Header snapshot from current Browser Cookies
+        function syncRequestCookiesToServer() {
+            // Purge expired cookies first
+            const now = Date.now();
+            for (const [name, meta] of Object.entries(state.browserCookies)) {
+                if (meta.expiresAt !== null && meta.expiresAt <= now) {
+                    delete state.browserCookies[name];
+                }
+            }
+
+            // Build HTTP Request Cookie header and populate $_COOKIE
+            state.serverCookieSuperglobal = {};
+            const cookiePairs = [];
+            for (const [name, meta] of Object.entries(state.browserCookies)) {
+                state.serverCookieSuperglobal[name] = meta.value;
+                cookiePairs.push(`${name}=${meta.value}`);
+            }
+            state.lastRequestCookieHeader = cookiePairs.join('; ');
+        }
+
+        // Action: setcookie($name, $value, time() + $ttl)
+        function handleSetCookie() {
+            const name = document.getElementById('cookieNameInput').value.trim().replace(/[^a-zA-Z0-9_-]/g, '');
+            const value = document.getElementById('cookieValInput').value.trim();
+            const ttl = parseInt(document.getElementById('cookieExpInput').value, 10) || 60;
+            const httpOnly = document.getElementById('cookieHttpOnly').checked;
+
+            if (!name) {
+                showToast('Please enter a valid cookie name.', 'rose');
+                return;
+            }
+
+            // Step 1: Current request sends existing browser cookies to PHP
+            syncRequestCookiesToServer();
+
+            // Step 2: PHP executes setcookie(), which queues a Set-Cookie HTTP Response Header
+            const expiresAt = Date.now() + (ttl * 1000);
+            const utcString = new Date(expiresAt).toUTCString();
+            const httpOnlyFlag = httpOnly ? '; HttpOnly' : '';
+            const headerStr = `Set-Cookie: ${name}=${encodeURIComponent(value)}; Expires=${utcString}; Max-Age=${ttl}; Path=/${httpOnlyFlag}`;
+
+            state.lastSetCookieHeaders = [headerStr];
+
+            // Step 3: Browser receives Response Header and stores cookie in Browser Cookie Jar
+            state.browserCookies[name] = {
+                value: value,
+                expiresAt: expiresAt,
+                httpOnly: httpOnly
+            };
+
+            const phpCode = `<?php
+// 1. Queue HTTP Response Header 'Set-Cookie'
+$expiry = time() + ${ttl}; // Expires in ${ttl} seconds
+setcookie("${name}", "${value}", $expiry, "/", "", false, ${httpOnly ? 'true' : 'false'});
+
+// Note: $_COOKIE["${name}"] is NOT populated in this exact script run
+// until the browser sends the cookie back on the NEXT HTTP request!
+?>`;
+
+            const explanation = `PHP sent "Set-Cookie: ${name}=${value}" in the HTTP Response header. Notice how the Client Browser Cookie Jar now has "${name}", and clicking "Reload Page" sends it into PHP's $_COOKIE array!`;
+
+            triggerNetworkAnimation('res', `Set-Cookie: ${name}=${value}`);
+            updateLiveCode(phpCode, explanation);
+            renderAll();
+            showToast(`Cookie "${name}" stored in Browser! Click "Reload Page" to see it in $_COOKIE.`, 'amber');
+        }
+
+        // Action: Delete a cookie via setcookie($name, "", time() - 3600)
+        function handleDeleteCookieInput() {
+            const name = document.getElementById('cookieNameInput').value.trim();
+            if (!name) return;
+            deleteCookieByName(name);
+        }
+
+        function deleteCookieByName(name) {
+            syncRequestCookiesToServer();
+
+            const pastUtc = new Date(Date.now() - 3600 * 1000).toUTCString();
+            const headerStr = `Set-Cookie: ${name}=deleted; Expires=${pastUtc}; Max-Age=0; Path=/`;
+            state.lastSetCookieHeaders = [headerStr];
+
+            // Remove from browser
+            delete state.browserCookies[name];
+
+            const phpCode = `<?php
+// To delete a cookie in PHP, set its expiration timestamp in the past:
+setcookie("${name}", "", time() - 3600, "/");
+
+// Optional: also unset from current request memory
+unset($_COOKIE["${name}"]);
+?>`;
+
+            delete state.serverCookieSuperglobal[name];
+
+            triggerNetworkAnimation('res', `Expire Cookie: ${name}`);
+            updateLiveCode(phpCode, `PHP instructed the browser to immediately expire "${name}" by sending a past timestamp (time() - 3600).`);
+            renderAll();
+            showToast(`Cookie "${name}" deleted from Browser.`, 'rose');
+        }
+
+        // Action: session_start()
+        function handleSessionStart() {
+            syncRequestCookiesToServer();
+            state.lastSetCookieHeaders = [];
+
+            let incomingSessId = state.serverCookieSuperglobal['PHPSESSID'];
+            let isNewSession = false;
+
+            if (!incomingSessId) {
+                // Generate new PHPSESSID and send Set-Cookie header
+                incomingSessId = generatePhpSessionId();
+                isNewSession = true;
+
+                state.browserCookies['PHPSESSID'] = {
+                    value: incomingSessId,
+                    expiresAt: null, // Session cookie (dies when browser closes)
+                    httpOnly: true
+                };
+
+                state.lastSetCookieHeaders = [
+                    `Set-Cookie: PHPSESSID=${incomingSessId}; Path=/; HttpOnly`
+                ];
+            }
+
+            state.currentSessionId = incomingSessId;
+            state.sessionActive = true;
+
+            // Ensure session file exists on server disk /tmp/sess_<id>
+            if (!state.serverDiskSessions[incomingSessId]) {
+                state.serverDiskSessions[incomingSessId] = {};
+            }
+
+            const phpCode = isNewSession
+                ? `<?php
+// Always call session_start() at the very top before any HTML output!
+session_start();
+
+// No PHPSESSID cookie arrived in the HTTP Request.
+// 1. PHP generated a new ID: ${incomingSessId}
+// 2. Created file on server: /tmp/sess_${incomingSessId}
+// 3. Sent HTTP Header: Set-Cookie: PHPSESSID=${incomingSessId}; path=/; HttpOnly
+?>`
+                : `<?php
+session_start();
+
+// PHP found Cookie: PHPSESSID=${incomingSessId} in the HTTP Request!
+// Loaded existing server file /tmp/sess_${incomingSessId} into $_SESSION.
+?>`;
+
+            const explanation = isNewSession
+                ? `Started a brand new PHP session! Server created /tmp/sess_${incomingSessId} and sent the PHPSESSID key cookie to the browser.`
+                : `Resumed existing session! PHP read PHPSESSID from the browser's Cookie header and unlocked /tmp/sess_${incomingSessId}.`;
+
+            triggerNetworkAnimation(isNewSession ? 'res' : 'req', isNewSession ? `Set-Cookie: PHPSESSID` : `Resume PHPSESSID`);
+            updateLiveCode(phpCode, explanation);
+            renderAll();
+            showToast(isNewSession ? 'New PHP Session started!' : 'Existing PHP Session resumed!', 'emerald');
+        }
+
+        // Action: $_SESSION[$key] = $value
+        function handleSetSessionVar() {
+            const key = document.getElementById('sessionKeyInput').value.trim().replace(/[^a-zA-Z0-9_]/g, '');
+            const val = document.getElementById('sessionValInput').value.trim();
+
+            if (!key) {
+                showToast('Please enter a valid $_SESSION key.', 'rose');
+                return;
+            }
+
+            let autoStarted = false;
+            if (!state.sessionActive || !state.currentSessionId) {
+                handleSessionStart();
+                autoStarted = true;
+            } else {
+                syncRequestCookiesToServer();
+                state.lastSetCookieHeaders = [];
+            }
+
+            // Save inside server's session file
+            if (!state.serverDiskSessions[state.currentSessionId]) {
+                state.serverDiskSessions[state.currentSessionId] = {};
+            }
+            state.serverDiskSessions[state.currentSessionId][key] = val;
+
+            const phpCode = `<?php
+session_start();
+
+// Store data inside $_SESSION superglobal (saved on SERVER disk, NOT in browser!)
+$_SESSION["${key}"] = "${val}";
+
+echo "Saved to /tmp/sess_" . session_id();
+?>`;
+
+            const explanation = `Stored $_SESSION["${key}"] = "${val}" inside the server file /tmp/sess_${state.currentSessionId}. Notice that the actual value "${val}" NEVER travels over HTTP or into the browser's cookies!`;
+
+            triggerNetworkAnimation('req', `$_SESSION['${key}']`);
+            updateLiveCode(phpCode, explanation);
+            renderAll();
+            if (!autoStarted) {
+                showToast(`Updated $_SESSION['${key}'] on server disk!`, 'emerald');
+            }
+        }
+
+        // Delete single key from $_SESSION
+        function unsetSessionKey(key) {
+            if (!state.sessionActive || !state.currentSessionId) return;
+            syncRequestCookiesToServer();
+            state.lastSetCookieHeaders = [];
+
+            if (state.serverDiskSessions[state.currentSessionId]) {
+                delete state.serverDiskSessions[state.currentSessionId][key];
+            }
+
+            const phpCode = `<?php
+session_start();
+
+// Remove a single variable from the session
+unset($_SESSION["${key}"]);
+?>`;
+            updateLiveCode(phpCode, `Removed "${key}" from $_SESSION and updated the /tmp/sess_${state.currentSessionId} file.`);
+            renderAll();
+            showToast(`Removed $_SESSION['${key}']`, 'amber');
+        }
+
+        // Action: session_unset()
+        function handleSessionUnset() {
+            if (!state.sessionActive || !state.currentSessionId) {
+                showToast('Start a session first with session_start()!', 'rose');
+                return;
+            }
+            syncRequestCookiesToServer();
+            state.lastSetCookieHeaders = [];
+
+            state.serverDiskSessions[state.currentSessionId] = {};
+
+            const phpCode = `<?php
+session_start();
+
+// Clears all variables inside $_SESSION, but keeps the session & file alive
+session_unset(); // or $_SESSION = [];
+?>`;
+
+            updateLiveCode(phpCode, `session_unset() emptied the $_SESSION array, but the session ID and /tmp/sess_${state.currentSessionId} file remain active.`);
+            renderAll();
+            showToast('Cleared all $_SESSION variables (session still active).', 'amber');
+        }
+
+        // Action: session_destroy()
+        function handleSessionDestroy() {
+            if (!state.sessionActive || !state.currentSessionId) {
+                showToast('No active session to destroy. Call session_start() first!', 'rose');
+                return;
+            }
+            syncRequestCookiesToServer();
+
+            const destroyedId = state.currentSessionId;
+            delete state.serverDiskSessions[destroyedId];
+            state.sessionActive = false;
+            state.currentSessionId = null;
+
+            // Also delete PHPSESSID cookie from browser (best practice in PHP logout)
+            delete state.browserCookies['PHPSESSID'];
+            delete state.serverCookieSuperglobal['PHPSESSID'];
+
+            const pastUtc = new Date(Date.now() - 3600 * 1000).toUTCString();
+            state.lastSetCookieHeaders = [
+                `Set-Cookie: PHPSESSID=deleted; Expires=${pastUtc}; Max-Age=0; Path=/; HttpOnly`
+            ];
+
+            const phpCode = `<?php
+session_start();
+
+// 1. Clear $_SESSION array in memory
+$_SESSION = [];
+
+// 2. Delete the PHPSESSID cookie from the client browser
+if (ini_get("session.use_cookies")) {
+    setcookie(session_name(), '', time() - 3600, '/');
+}
+
+// 3. Delete the session file (/tmp/sess_${destroyedId}) from the server disk
+session_destroy();
+?>`;
+
+            triggerNetworkAnimation('res', 'session_destroy()');
+            updateLiveCode(phpCode, `Destroyed /tmp/sess_${destroyedId} on the server and expired the PHPSESSID cookie in the browser. User is completely logged out.`);
+            renderAll();
+            showToast('Session destroyed & server session file deleted!', 'rose');
+        }
+
+        // Action: session_regenerate_id(true)
+        function handleRegenerateSessionId() {
+            if (!state.sessionActive || !state.currentSessionId) {
+                handleSessionStart();
+                return;
+            }
+            syncRequestCookiesToServer();
+
+            const oldId = state.currentSessionId;
+            const oldData = { ...(state.serverDiskSessions[oldId] || {}) };
+            const newId = generatePhpSessionId();
+
+            delete state.serverDiskSessions[oldId];
+            state.serverDiskSessions[newId] = oldData;
+            state.currentSessionId = newId;
+
+            state.browserCookies['PHPSESSID'] = {
+                value: newId,
+                expiresAt: null,
+                httpOnly: true
+            };
+
+            state.lastSetCookieHeaders = [
+                `Set-Cookie: PHPSESSID=${newId}; Path=/; HttpOnly`
+            ];
+
+            const phpCode = `<?php
+session_start();
+
+// Prevents Session Fixation attacks by issuing a brand new PHPSESSID
+// while keeping all existing $_SESSION data intact!
+session_regenerate_id(true);
+?>`;
+
+            triggerNetworkAnimation('res', 'New PHPSESSID Issued');
+            updateLiveCode(phpCode, `Replaced old session ID (${oldId.slice(0, 8)}...) with a fresh ID (${newId.slice(0, 8)}...) and migrated $_SESSION data.`);
+            renderAll();
+            showToast('Regenerated PHPSESSID to prevent session fixation!', 'indigo');
+        }
+
+        // Simulate Page Reload (Browser sends HTTP GET Request with current cookies)
+        function simulatePageReload() {
+            syncRequestCookiesToServer();
+            state.lastSetCookieHeaders = [];
+
+            // If PHPSESSID is sent and session was active or exists on disk, resume it
+            const reqSessId = state.serverCookieSuperglobal['PHPSESSID'];
+            if (reqSessId && state.serverDiskSessions[reqSessId]) {
+                state.sessionActive = true;
+                state.currentSessionId = reqSessId;
+            }
+
+            const phpCode = `<?php
+// New HTTP GET Request arrived from the browser!
+session_start();
+
+// PHP automatically parses the incoming 'Cookie:' HTTP Request header
+// into the $_COOKIE superglobal array:
+print_r($_COOKIE);
+print_r($_SESSION);
+?>`;
+
+            triggerNetworkAnimation('req', 'HTTP GET + Cookie Header');
+            updateLiveCode(phpCode, `Browser reloaded the page and transmitted all active cookies in the HTTP Request 'Cookie' header. Look at $_COOKIE on the server—it now matches the Browser Cookie Jar!`);
+            renderAll();
+            showToast('HTTP GET Request sent! $_COOKIE updated on server.', 'sky');
+        }
+
+        // Simulate Closing Browser (Deletes session cookies where expiresAt === null)
+        function simulateBrowserClose() {
+            let removedCount = 0;
+            for (const [name, meta] of Object.entries(state.browserCookies)) {
+                if (meta.expiresAt === null) {
+                    delete state.browserCookies[name];
+                    removedCount++;
+                }
+            }
+            state.sessionActive = false;
+            state.currentSessionId = null;
+            syncRequestCookiesToServer();
+            state.lastSetCookieHeaders = [];
+
+            const phpCode = `// Browser Closed by User!
+// 1. Session cookies (like PHPSESSID with no Expires timestamp) are deleted by the browser.
+// 2. Persistent cookies created with setcookie($name, $val, time() + $ttl) SURVIVE on disk!
+// 3. Orphaned /tmp/sess_... files on the server will later be cleaned up by PHP's Garbage Collector.`;
+
+            updateLiveCode(phpCode, `Closing the browser wiped PHPSESSID (because session cookies have no expiry date), logging the user out—while persistent cookies with a future TTL survived!`);
+            renderAll();
+            showToast(`Browser closed! Removed ${removedCount} session cookie(s); persistent cookies survived.`, 'indigo');
+        }
+
+        // Pre-built Guided Demo Scenarios
+        function runDemoScenario(type) {
+            if (type === 'login') {
+                handleSessionStart();
+                const sid = state.currentSessionId;
+                state.serverDiskSessions[sid] = {
+                    user_id: '42',
+                    username: 'kasun_perera',
+                    role: 'admin'
+                };
+                syncRequestCookiesToServer();
+
+                const phpCode = `<?php
+session_start();
+
+// After verifying password against database:
+$_SESSION["user_id"] = 42;
+$_SESSION["username"] = "kasun_perera";
+$_SESSION["role"] = "admin";
+?>`;
+                updateLiveCode(phpCode, `Demo Login Complete! User credentials & role are safely stored on the server in /tmp/sess_${sid.slice(0, 10)}..., while the browser only holds the random PHPSESSID cookie.`);
+                renderAll();
+                showToast('Demo Loaded: Authenticated User Session!', 'emerald');
+            } else if (type === 'theme') {
+                document.getElementById('cookieNameInput').value = 'theme';
+                document.getElementById('cookieValInput').value = 'dark';
+                document.getElementById('cookieExpInput').value = '300';
+                handleSetCookie();
+                setTimeout(() => {
+                    simulatePageReload();
+                }, 650);
+            }
+        }
+
+        function resetAllSimulation() {
+            state.browserCookies = {};
+            state.serverCookieSuperglobal = {};
+            state.lastSetCookieHeaders = [];
+            state.lastRequestCookieHeader = '';
+            state.sessionActive = false;
+            state.currentSessionId = null;
+            state.serverDiskSessions = {};
+
+            updateLiveCode(`<?php\n// Simulation state reset.\n// Try setting a Cookie or starting a Session!\n?>`, 'All cookies, headers, and server session files have been cleared.');
+            renderAll();
+            showToast('Lab state reset.', 'indigo');
+        }
+
+        // =========================================================================
+        // 3. UI RENDERING & LIVE UPDATERS
+        // =========================================================================
+
+        function triggerNetworkAnimation(direction, labelText) {
+            const packet = document.getElementById('packetIndicator');
+            const badge = document.getElementById('httpCycleBadge');
+            packet.textContent = labelText;
+            packet.classList.remove('hidden', 'packet-req', 'packet-res');
+            void packet.offsetWidth; // trigger reflow
+            packet.classList.add(direction === 'req' ? 'packet-req' : 'packet-res');
+
+            badge.textContent = direction === 'req' ? 'Request Sent →' : '← Response Received';
+            setTimeout(() => {
+                packet.classList.add('hidden');
+            }, 950);
+        }
+
+        function updateLiveCode(code, explanation) {
+            document.getElementById('livePhpSnippet').textContent = code;
+            document.getElementById('livePhpExplanation').textContent = explanation;
+            const now = new Date();
+            document.getElementById('lastActionTime').textContent = now.toLocaleTimeString();
+        }
+
+        function renderAll() {
+            renderBrowserCookies();
+            renderHttpHeaders();
+            renderServerPanels();
+            renderSimulatedWebpage();
+        }
+
+        function renderBrowserCookies() {
+            const listEl = document.getElementById('browserCookieList');
+            const countEl = document.getElementById('browserCookieCount');
+            const jsCookieBox = document.getElementById('jsDocumentCookieBox');
+
+            const entries = Object.entries(state.browserCookies);
+            countEl.textContent = `${entries.length} cookie${entries.length === 1 ? '' : 's'}`;
+
+            if (entries.length === 0) {
+                listEl.innerHTML = `
+                    <div class="text-center py-6 px-3 rounded-xl border border-dashed border-slate-200 dark:border-slate-800 text-xs text-slate-400">
+                        Browser Cookie Jar is empty.<br>Run <code class="font-mono text-amber-500">setcookie()</code> or <code class="font-mono text-emerald-500">session_start()</code> above.
+                    </div>`;
+                jsCookieBox.textContent = '""';
+                return;
+            }
+
+            const now = Date.now();
+            let jsVisibleCookies = [];
+
+            listEl.innerHTML = entries.map(([name, meta]) => {
+                const isSessionCookie = meta.expiresAt === null;
+                const remainingSec = isSessionCookie ? null : Math.max(0, Math.ceil((meta.expiresAt - now) / 1000));
+                if (!meta.httpOnly) {
+                    jsVisibleCookies.push(`${name}=${meta.value}`);
+                }
+
+                const isPhpSess = name === 'PHPSESSID';
+                const badgeColor = isPhpSess
+                    ? 'bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border-emerald-500/30'
+                    : 'bg-amber-500/15 text-amber-600 dark:text-amber-400 border-amber-500/30';
+
+                return `
+                    <div class="p-2.5 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 flex items-center justify-between gap-2">
+                        <div class="min-w-0">
+                            <div class="flex items-center gap-1.5 flex-wrap">
+                                <span class="font-mono text-xs font-bold px-1.5 py-0.5 rounded border ${badgeColor}">${escapeHtml(name)}</span>
+                                <span class="font-mono text-xs text-slate-700 dark:text-slate-300 truncate">= "${escapeHtml(meta.value)}"</span>
+                            </div>
+                            <div class="flex items-center gap-2 mt-1 text-[10px] font-mono text-slate-400">
+                                <span><i class="fa-regular fa-clock mr-0.5"></i>${isSessionCookie ? 'Session (Browser Close)' : `TTL: ${remainingSec}s`}</span>
+                                ${meta.httpOnly ? '<span class="text-indigo-400">• HttpOnly</span>' : '<span class="text-amber-500">• JS Accessible</span>'}
+                            </div>
+                        </div>
+                        <button onclick="deleteCookieByName('${escapeHtml(name)}')" title="Expire / Delete Cookie" class="w-7 h-7 rounded-lg bg-rose-500/10 hover:bg-rose-500/20 text-rose-500 flex items-center justify-center shrink-0 transition">
+                            <i class="fa-solid fa-trash-can text-xs"></i>
+                        </button>
+                    </div>
+                `;
+            }).join('');
+
+            jsCookieBox.textContent = jsVisibleCookies.length > 0 ? `"${jsVisibleCookies.join('; ')}"` : '"" (All cookies are HttpOnly)';
+        }
+
+        function renderHttpHeaders() {
+            const reqBox = document.getElementById('httpRequestBox');
+            const resBox = document.getElementById('httpResponseBox');
+
+            const cookieHeaderLine = state.lastRequestCookieHeader
+                ? `<span class="text-amber-300 font-semibold">Cookie: ${escapeHtml(state.lastRequestCookieHeader)}</span>`
+                : `<span class="text-slate-500"># No Cookie header sent</span>`;
+
+            reqBox.innerHTML = `GET /dashboard.php HTTP/1.1\nHost: localhost:8000\n${cookieHeaderLine}`;
+
+            const setCookieLines = state.lastSetCookieHeaders.length > 0
+                ? state.lastSetCookieHeaders.map(h => `<span class="text-emerald-300 font-semibold">${escapeHtml(h)}</span>`).join('\n')
+                : `<span class="text-slate-500"># No Set-Cookie header queued</span>`;
+
+            resBox.innerHTML = `HTTP/1.1 200 OK\nContent-Type: text/html; charset=UTF-8\n${setCookieLines}`;
+        }
+
+        function renderServerPanels() {
+            // 1. $_COOKIE
+            document.getElementById('serverCookieArray').textContent = formatPhpArrayDump(state.serverCookieSuperglobal);
+
+            // 2. Session status badge & button
+            const statusBadge = document.getElementById('sessionStatusBadge');
+            const startBtn = document.getElementById('btnSessionStart');
+            if (state.sessionActive && state.currentSessionId) {
+                statusBadge.textContent = `ACTIVE (${state.currentSessionId.slice(0, 8)}...)`;
+                statusBadge.className = 'text-[11px] font-mono px-2 py-0.5 rounded bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30';
+                startBtn.classList.remove('animate-glow');
+            } else {
+                statusBadge.textContent = 'INACTIVE';
+                statusBadge.className = 'text-[11px] font-mono px-2 py-0.5 rounded bg-slate-200 dark:bg-slate-800 text-slate-600 dark:text-slate-400';
+                startBtn.classList.add('animate-glow');
+            }
+
+            // 3. $_SESSION Superglobal
+            const sessArrayEl = document.getElementById('serverSessionArray');
+            const sessHintEl = document.getElementById('serverSessionHint');
+            if (!state.sessionActive || !state.currentSessionId) {
+                sessArrayEl.textContent = `// $_SESSION is unavailable\n// Call session_start() to initialize`;
+                sessHintEl.textContent = 'Requires session_start()';
+            } else {
+                const currentData = state.serverDiskSessions[state.currentSessionId] || {};
+                sessArrayEl.textContent = formatPhpArrayDump(currentData);
+                sessHintEl.textContent = `Linked to sess_${state.currentSessionId.slice(0, 6)}...`;
+            }
+
+            // 4. Server Disk (/tmp/sess_...)
+            const diskEl = document.getElementById('serverDiskContainer');
+            const sessionFiles = Object.entries(state.serverDiskSessions);
+
+            if (sessionFiles.length === 0) {
+                diskEl.innerHTML = `
+                    <div class="text-center py-4 text-xs text-slate-400 font-mono">
+                        No session files in /tmp/
+                    </div>`;
+                return;
+            }
+
+            diskEl.innerHTML = sessionFiles.map(([sid, dataObj]) => {
+                const isCurrent = sid === state.currentSessionId && state.sessionActive;
+                const keys = Object.keys(dataObj);
+                return `
+                    <div class="p-2.5 rounded-xl bg-white dark:bg-slate-900 border ${isCurrent ? 'border-emerald-500/50' : 'border-slate-200 dark:border-slate-800'} text-xs space-y-1.5">
+                        <div class="flex items-center justify-between">
+                            <span class="font-mono font-bold text-[11px] text-indigo-600 dark:text-indigo-400 flex items-center gap-1">
+                                <i class="fa-regular fa-file-lines"></i> /tmp/sess_${escapeHtml(sid.slice(0, 12))}...
+                            </span>
+                            <span class="text-[10px] font-mono px-1.5 py-0.5 rounded ${isCurrent ? 'bg-emerald-500/15 text-emerald-500' : 'bg-slate-200 dark:bg-slate-800 text-slate-400'}">
+                                ${isCurrent ? 'OPEN' : 'IDLE ON DISK'}
+                            </span>
+                        </div>
+                        <div class="p-2 rounded bg-slate-950 text-slate-300 font-mono text-[11px] overflow-x-auto border border-slate-800">
+                            ${escapeHtml(serializePhpSessionData(dataObj))}
+                        </div>
+                        ${keys.length > 0 && isCurrent ? `
+                            <div class="flex flex-wrap gap-1 pt-1">
+                                ${keys.map(k => `
+                                    <button onclick="unsetSessionKey('${escapeHtml(k)}')" class="text-[10px] font-mono px-1.5 py-0.5 rounded bg-rose-500/10 hover:bg-rose-500/20 text-rose-500 transition">
+                                        unset('${escapeHtml(k)}') &times;
+                                    </button>
+                                `).join('')}
+                            </div>
+                        ` : ''}
+                    </div>
+                `;
+            }).join('');
+        }
+
+        function renderSimulatedWebpage() {
+            const pageBox = document.getElementById('simulatedWebpage');
+            const greetingEl = document.getElementById('webpageGreeting');
+            const subtextEl = document.getElementById('webpageSubtext');
+            const avatarEl = document.getElementById('avatarCircle');
+            const badgesEl = document.getElementById('webpageBadges');
+            const themeInd = document.getElementById('previewThemeIndicator');
+
+            // Check theme cookie (from server $_COOKIE or browser cookie)
+            const activeTheme = state.serverCookieSuperglobal['theme'] || (state.browserCookies['theme'] && state.browserCookies['theme'].value) || 'default';
+            themeInd.textContent = `Cookie theme: ${activeTheme}`;
+
+            if (activeTheme === 'dark') {
+                pageBox.className = 'rounded-xl p-3.5 border border-indigo-500/40 bg-slate-950 text-white transition-colors';
+            } else if (activeTheme === 'light') {
+                pageBox.className = 'rounded-xl p-3.5 border border-amber-400 bg-amber-50 text-slate-900 transition-colors';
+            } else {
+                pageBox.className = 'rounded-xl p-3.5 border border-slate-200 dark:border-slate-700/80 bg-slate-50 dark:bg-slate-800/50 transition-colors';
+            }
+
+            const sessData = (state.sessionActive && state.currentSessionId && state.serverDiskSessions[state.currentSessionId])
+                ? state.serverDiskSessions[state.currentSessionId]
+                : null;
+
+            if (sessData && Object.keys(sessData).length > 0) {
+                const user = sessData.username || sessData.user || 'Authenticated User';
+                greetingEl.textContent = `Welcome back, ${user}!`;
+                subtextEl.textContent = `Session ID: ${state.currentSessionId.slice(0, 10)}...`;
+                avatarEl.textContent = user.charAt(0).toUpperCase();
+                avatarEl.className = 'w-9 h-9 rounded-full bg-emerald-500 text-slate-950 flex items-center justify-center font-bold text-sm';
+
+                badgesEl.innerHTML = Object.entries(sessData).slice(0, 2).map(([k, v]) =>
+                    `<span class="text-[10px] font-mono px-1.5 py-0.5 rounded bg-emerald-500/20 text-emerald-500 border border-emerald-500/30">${escapeHtml(k)}: ${escapeHtml(v)}</span>`
+                ).join('');
+            } else {
+                greetingEl.textContent = 'Welcome, Guest!';
+                subtextEl.textContent = state.sessionActive ? 'Session active (empty $_SESSION)' : 'No active PHP session.';
+                avatarEl.textContent = '?';
+                avatarEl.className = 'w-9 h-9 rounded-full bg-indigo-500/20 text-indigo-500 flex items-center justify-center font-bold text-sm';
+                badgesEl.innerHTML = '';
+            }
+        }
+
+        // Countdown interval for expiring cookies
+        setInterval(() => {
+            const now = Date.now();
+            let expiredAny = false;
+            for (const [name, meta] of Object.entries(state.browserCookies)) {
+                if (meta.expiresAt !== null && meta.expiresAt <= now) {
+                    delete state.browserCookies[name];
+                    expiredAny = true;
+                    showToast(`Cookie "${name}" TTL expired and was automatically removed by the Browser!`, 'amber');
+                }
+            }
+            if (Object.keys(state.browserCookies).length > 0 || expiredAny) {
+                renderBrowserCookies();
+            }
+        }, 1000);
+
+        // =========================================================================
+        // 4. INTERACTIVE COMPARISON QUIZ
+        // =========================================================================
+        const quizQuestions = [
+            {
+                id: 1,
+                scenario: "Storing whether the logged-in user has 'admin' privileges and their database user_id.",
+                correct: "session",
+                explanation: "Never store roles or user_ids in a plain Cookie! Users can easily edit cookies in DevTools to grant themselves 'admin' access. Store authentication state in $_SESSION on the server."
+            },
+            {
+                id: 2,
+                scenario: "Remembering a visitor's preferred UI theme ('dark' or 'light') for 30 days even without logging in.",
+                correct: "cookie",
+                explanation: "A persistent Cookie with setcookie('theme', 'dark', time() + 86400 * 30) is ideal here because it's non-sensitive preference data and needs to survive browser restarts."
+            },
+            {
+                id: 3,
+                scenario: "Keeping track of a multi-step checkout wizard and temporary flash error messages.",
+                correct: "session",
+                explanation: "Sessions are ideal for multi-step forms and temporary flash messages because they can hold larger arrays/objects and automatically clean up when the browser closes."
+            },
+            {
+                id: 4,
+                scenario: "Implementing a 'Remember Me for 14 Days' auto-login checkbox.",
+                correct: "cookie",
+                explanation: "Because PHP sessions expire when the browser closes, 'Remember Me' uses a long-lived HttpOnly Cookie containing a cryptographically random selector:validator token verified against the database."
+            }
+        ];
+
+        function renderQuiz() {
+            const container = document.getElementById('quizContainer');
+            container.innerHTML = quizQuestions.map(q => {
+                const chosen = state.quizAnswers[q.id];
+                const isCorrect = chosen === q.correct;
+
+                return `
+                    <div class="p-4 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 flex flex-col justify-between gap-3">
+                        <div>
+                            <div class="text-xs font-mono text-indigo-500 mb-1">Scenario #${q.id}</div>
+                            <p class="text-sm font-semibold text-slate-800 dark:text-slate-100">${q.scenario}</p>
+                        </div>
+                        <div class="flex items-center gap-2">
+                            <button onclick="answerQuiz(${q.id}, 'cookie')" class="flex-1 py-2 px-3 rounded-lg text-xs font-semibold border transition ${chosen === 'cookie' ? (isCorrect ? 'bg-emerald-500 text-slate-950 border-emerald-500' : 'bg-rose-500 text-white border-rose-500') : 'bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 hover:border-amber-500'}">
+                                <i class="fa-solid fa-cookie-bite mr-1"></i> Use Cookie
+                            </button>
+                            <button onclick="answerQuiz(${q.id}, 'session')" class="flex-1 py-2 px-3 rounded-lg text-xs font-semibold border transition ${chosen === 'session' ? (isCorrect ? 'bg-emerald-500 text-slate-950 border-emerald-500' : 'bg-rose-500 text-white border-rose-500') : 'bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 hover:border-emerald-500'}">
+                                <i class="fa-solid fa-server mr-1"></i> Use Session
+                            </button>
+                        </div>
+                        ${chosen ? `
+                            <div class="p-2.5 rounded-lg text-xs ${isCorrect ? 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 border border-emerald-500/20' : 'bg-rose-500/10 text-rose-700 dark:text-rose-300 border border-rose-500/20'}">
+                                <strong>${isCorrect ? 'Correct!' : 'Not quite!'}</strong> ${q.explanation}
+                            </div>
+                        ` : ''}
+                    </div>
+                `;
+            }).join('');
+
+            const answeredCount = Object.keys(state.quizAnswers).length;
+            const correctCount = quizQuestions.filter(q => state.quizAnswers[q.id] === q.correct).length;
+            document.getElementById('quizScoreBadge').textContent = `Score: ${correctCount} / ${quizQuestions.length} (${answeredCount} answered)`;
+        }
+
+        function answerQuiz(id, choice) {
+            state.quizAnswers[id] = choice;
+            renderQuiz();
+        }
+
+        // =========================================================================
+        // 5. RUNNABLE SINGLE-FILE PHP CODE GENERATOR
+        // =========================================================================
+        const runnablePhpSource = `<?php
+/**
+ * PHP Cookies & Sessions — Single-File Local Lab (index.php)
+ * ----------------------------------------------------------
+ * How to run:
+ *   Option A: Place in C:\\xampp\\htdocs\\index.php and visit http://localhost/index.php
+ *   Option B: Run \`php -S localhost:8000\` in terminal and visit http://localhost:8000
+ */
+
+// 1. ALWAYS start the session at the very top BEFORE any HTML output!
+session_start();
+
+$flashMessage = "";
+
+// 2. Handle Form Actions
+if ($_SERVER["REQUEST_METHOD"] === "POST") {
+    $action = $_POST["action"] ?? "";
+
+    // --- COOKIE ACTIONS ---
+    if ($action === "set_cookie") {
+        $name  = preg_replace('/[^a-zA-Z0-9_-]/', '', $_POST["cookie_name"] ?? "theme");
+        $value = $_POST["cookie_value"] ?? "dark";
+        $ttl   = (int)($_POST["cookie_ttl"] ?? 60);
+
+        if ($name !== "") {
+            // Queue the Set-Cookie HTTP response header (HttpOnly = true for security)
+            setcookie($name, $value, time() + $ttl, "/", "", false, true);
+            $flashMessage = "Cookie '$name' queued in Set-Cookie header (expires in {$ttl}s). Reload page to see it in \\$_COOKIE!";
+        }
+    } elseif ($action === "delete_cookie") {
+        $name = $_POST["cookie_name"] ?? "theme";
+        // Expire cookie by setting timestamp in the past
+        setcookie($name, "", time() - 3600, "/");
+        unset($_COOKIE[$name]);
+        $flashMessage = "Cookie '$name' expired (time() - 3600).";
+    }
+
+    // --- SESSION ACTIONS ---
+    elseif ($action === "set_session") {
+        $key = $_POST["session_key"] ?? "username";
+        $val = $_POST["session_val"] ?? "alex_dev";
+        if ($key !== "") {
+            $_SESSION[$key] = $val;
+            $flashMessage = "Saved \\$_SESSION['$key'] = '$val' on the server!";
+        }
+    } elseif ($action === "clear_session") {
+        session_unset();
+        $flashMessage = "Cleared all variables in \\$_SESSION with session_unset().";
+    } elseif ($action === "destroy_session") {
+        $_SESSION = [];
+        if (ini_get("session.use_cookies")) {
+            $params = session_get_cookie_params();
+            setcookie(session_name(), '', time() - 3600, $params["path"]);
+        }
+        session_destroy();
+        $flashMessage = "Session destroyed and PHPSESSID cookie deleted!";
+    }
+}
+
+$theme = $_COOKIE["theme"] ?? "dark";
+?>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>PHP Cookies & Sessions Local Sandbox</title>
+    <style>
+        body {
+            font-family: system-ui, -apple-system, sans-serif;
+            background: <?= $theme === 'light' ? '#f8fafc' : '#0f172a' ?>;
+            color: <?= $theme === 'light' ? '#0f172a' : '#f8fafc' ?>;
+            max-width: 960px;
+            margin: 2rem auto;
+            padding: 0 1rem;
+        }
+        .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 1.5rem; }
+        .card {
+            background: <?= $theme === 'light' ? '#ffffff' : '#1e293b' ?>;
+            border: 1px solid <?= $theme === 'light' ? '#e2e8f0' : '#334155' ?>;
+            border-radius: 12px;
+            padding: 1.25rem;
+        }
+        input, button {
+            padding: 0.5rem 0.75rem;
+            border-radius: 6px;
+            border: 1px solid #64748b;
+            font-size: 0.9rem;
+            margin-top: 0.25rem;
+        }
+        button { background: #6366f1; color: white; border: none; cursor: pointer; font-weight: 600; }
+        button.danger { background: #e11d48; }
+        pre { background: #020617; color: #38bdf8; padding: 1rem; border-radius: 8px; overflow-x: auto; }
+        .alert { background: #312e81; color: #e0e7ff; padding: 0.75rem 1rem; border-radius: 8px; margin-bottom: 1.5rem; }
+    </style>
+</head>
+<body>
+    <h1>🐘 PHP Cookies &amp; Sessions Live Sandbox</h1>
+    <p>Current Session ID (<code>session_id()</code>): <strong><?= htmlspecialchars(session_id() ?: 'Destroyed (Reload to start)') ?></strong> | <a href="index.php" style="color:#818cf8;">🔄 Reload Page (GET)</a></p>
+
+    <?php if ($flashMessage): ?>
+        <div class="alert">💡 <?= htmlspecialchars($flashMessage) ?></div>
+    <?php endif; ?>
+
+    <div class="grid">
+        <!-- Cookie Form -->
+        <div class="card">
+            <h2>🍪 1. Manage Cookies (Client Browser)</h2>
+            <form method="POST">
+                <input type="hidden" name="action" value="set_cookie">
+                <label>Name: <input type="text" name="cookie_name" value="theme" required></label><br><br>
+                <label>Value: <input type="text" name="cookie_value" value="light" required></label><br><br>
+                <label>TTL (seconds): <input type="number" name="cookie_ttl" value="120"></label><br><br>
+                <button type="submit">Set Cookie</button>
+            </form>
+            <form method="POST" style="margin-top: 0.75rem;">
+                <input type="hidden" name="action" value="delete_cookie">
+                <input type="hidden" name="cookie_name" value="theme">
+                <button type="submit" class="danger">Delete 'theme' Cookie</button>
+            </form>
+
+            <h3>$_COOKIE Superglobal:</h3>
+            <pre><?php print_r($_COOKIE); ?></pre>
+        </div>
+
+        <!-- Session Form -->
+        <div class="card">
+            <h2>🔒 2. Manage Session (PHP Server)</h2>
+            <form method="POST">
+                <input type="hidden" name="action" value="set_session">
+                <label>Key: <input type="text" name="session_key" value="username" required></label><br><br>
+                <label>Value: <input type="text" name="session_val" value="kasun_dev" required></label><br><br>
+                <button type="submit">Save to $_SESSION</button>
+            </form>
+            <form method="POST" style="margin-top: 0.75rem; display:flex; gap:0.5rem;">
+                <button type="submit" name="action" value="clear_session" class="danger">session_unset()</button>
+                <button type="submit" name="action" value="destroy_session" class="danger">session_destroy()</button>
+            </form>
+
+            <h3>$_SESSION Superglobal:</h3>
+            <pre><?php print_r($_SESSION ?? []); ?></pre>
+            <p><small>Session File Path: <code><?= htmlspecialchars(session_save_path() ?: sys_get_temp_dir()) ?>/sess_<?= htmlspecialchars(session_id()) ?></code></small></p>
+        </div>
+    </div>
+</body>
+</html>`;
+
+        function copyRunnablePhpCode() {
+            const textarea = document.createElement('textarea');
+            textarea.value = runnablePhpSource;
+            document.body.appendChild(textarea);
+            textarea.select();
+            document.execCommand('copy');
+            document.body.removeChild(textarea);
+
+            const btn = document.getElementById('copyPhpBtn');
+            const originalHtml = btn.innerHTML;
+            btn.innerHTML = `<i class="fa-solid fa-check"></i> <span>Copied index.php to Clipboard!</span>`;
+            btn.classList.replace('bg-indigo-600', 'bg-emerald-600');
+            showToast('Copied complete index.php script to clipboard!', 'emerald');
+
+            setTimeout(() => {
+                btn.innerHTML = originalHtml;
+                btn.classList.replace('bg-emerald-600', 'bg-indigo-600');
+            }, 2500);
+        }
+
+        // =========================================================================
+        // 6. TABS, THEME & UTILITIES
+        // =========================================================================
+        function switchTab(tabId) {
+            ['simulator', 'comparison', 'code'].forEach(id => {
+                const section = document.getElementById(`tab-${id}`);
+                const btn = document.getElementById(`tabBtn-${id}`);
+                if (id === tabId) {
+                    section.classList.remove('hidden');
+                    btn.className = 'tab-btn px-3 sm:px-4 py-1.5 rounded-lg text-xs sm:text-sm font-medium transition-all bg-white dark:bg-slate-900 text-indigo-600 dark:text-indigo-400 shadow-sm flex items-center gap-1.5';
+                } else {
+                    section.classList.add('hidden');
+                    btn.className = 'tab-btn px-3 sm:px-4 py-1.5 rounded-lg text-xs sm:text-sm font-medium transition-all text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white flex items-center gap-1.5';
+                }
+            });
+        }
+
+        function toggleTheme() {
+            document.documentElement.classList.toggle('dark');
+        }
+
+        function showToast(message, color = 'indigo') {
+            const container = document.getElementById('toastContainer');
+            const toast = document.createElement('div');
+            const colorMap = {
+                indigo: 'border-indigo-500/40 bg-slate-900/95 text-indigo-200',
+                emerald: 'border-emerald-500/40 bg-slate-900/95 text-emerald-200',
+                amber: 'border-amber-500/40 bg-slate-900/95 text-amber-200',
+                rose: 'border-rose-500/40 bg-slate-900/95 text-rose-200',
+                sky: 'border-sky-500/40 bg-slate-900/95 text-sky-200'
+            };
+            toast.className = `px-4 py-2.5 rounded-xl border shadow-lg text-xs font-medium backdrop-blur-md transition-all duration-300 ${colorMap[color] || colorMap.indigo}`;
+            toast.innerHTML = message;
+            container.appendChild(toast);
+
+            setTimeout(() => {
+                toast.style.opacity = '0';
+                toast.style.transform = 'translateY(8px)';
+                setTimeout(() => toast.remove(), 300);
+            }, 3200);
+        }
+
+        function escapeHtml(str) {
+            return String(str)
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;')
+                .replace(/'/g, '&#039;');
+        }
+
+        // Initialize on load
+        window.onload = function () {
+            document.getElementById('runnablePhpCodeBlock').textContent = runnablePhpSource;
+            renderQuiz();
+            renderAll();
+        };
+    </script>
+</body>
+</html>
